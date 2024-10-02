@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DTC2024 React 강의 4</title>
+  <meta name="description" content="2024 DTC 신입 대상 React 강의 슬라이드 (4강 &mdash; 커진 앱 정리하기)">
+  <link rel="icon" type="image/svg+xml" href="/react.svg">
+  <script type="module" src="/main.js"></script>
+</head>
+
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <section data-transition="zoom">
+      <h1>React</h1>
+      <p class="subtitle">4강 &mdash; 커진 앱 정리하기</p>
+      <p class="byline">2024 DTC &middot; 추희도</p>
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h3 class="slide-title">슬라이드 보는 법</h3>
+        <table class="keys">
+          <tr><td>&rarr; / Space</td><td>다음으로</td></tr>
+          <tr><td>&larr;</td><td>이전으로</td></tr>
+          <tr><td>&darr; / &uarr;</td><td>같은 주제 안에서 단계 이동</td></tr>
+          <tr><td>O</td><td>전체 슬라이드 한눈에 보기</td></tr>
+          <tr><td>S</td><td>발표자 노트</td></tr>
+          <tr><td>F</td><td>전체화면</td></tr>
+        </table>
+        <p class="hint">아래쪽 화살표가 보이면 그 주제는 단계별로 이어집니다</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">3강 복습</h3>
+        <table class="summary">
+          <tr><td>useState</td><td>바뀌면 화면도 바뀌는 값</td></tr>
+          <tr><td>useEffect</td><td>렌더링이 끝난 뒤 딴 일</td></tr>
+          <tr><td>끌어올리기</td><td>공통 부모로 state를 올린다</td></tr>
+        </table>
+        <p class="hint">오늘은 지금까지 만든 코드를 <strong>정리</strong>합니다</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">오늘 끝나면 할 수 있는 것</h3>
+        <ul class="goals">
+          <li>props가 길게 이어지는 문제를 푼다</li>
+          <li>DOM에 직접 접근한다</li>
+          <li>불필요한 계산을 줄인다</li>
+          <li>반복되는 로직을 훅으로 뽑는다</li>
+          <li>폴더를 정리한다</li>
+        </ul>
+        <aside class="notes">오늘은 새 기능이 아니라 정리하는 회차다. 3강까지 만든 코드를 실제로 고치면서 진행할 것.</aside>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h3 class="slide-title">오늘 배울 것</h3>
+        <ul class="toc">
+          <li>18. props drilling</li>
+          <li>19. Context</li>
+          <li>20. useRef</li>
+          <li>21. useMemo와 useCallback</li>
+          <li>22. 커스텀 훅</li>
+          <li>23. 폴더 구조</li>
+        </ul>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>18. props drilling</h2><p class="lead">props가 너무 멀리 간다</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">18. props drilling <span class="tag warn">문제</span></h3>
+        <div class="tree"><b>&lt;App&gt;</b>            <i>user를 가지고 있다</i>
+        └─ <b>&lt;Layout&gt;</b>       <i>user를 그냥 전달만</i>
+            └─ <b>&lt;Header&gt;</b>   <i>user를 그냥 전달만</i>
+                └─ <b>&lt;Avatar&gt;</b>   <i>여기서 쓴다</i></div>
+            <p class="hint">가운데 컴포넌트들은 쓰지도 않으면서 받아 넘기기만 한다</p>
+        <aside class="notes">중간 컴포넌트가 불필요하게 결합된다. 하나 추가하려면 전부 고쳐야 한다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">18. props drilling <span class="tag warn">문제</span></h3>
+        <pre>
+          <code class="language-javascript" data-trim>
+            &lt;Layout user={user}&gt;
+              &lt;Header user={user}&gt;
+                &lt;Avatar user={user} /&gt;
+              &lt;/Header&gt;
+            &lt;/Layout&gt;
+          </code>
+        </pre>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>19. Context</h2><p class="lead">멀리 있는 컴포넌트에 값을 전달하려면</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">19. Context <span class="tag">1. 만들기</span></h3>
+        <pre>
+          <span class="filename">src/UserContext.js</span>
+          <code class="language-javascript" data-trim>
+            import { createContext } from 'react';
+
+            export const UserContext = createContext(null);
+          </code>
+        </pre>
+      </section>
+
+      <section>
+        <h3 class="slide-title">19. Context <span class="tag">2. 감싸기</span></h3>
+        <pre>
+          <code class="language-javascript" data-trim>
+            &lt;UserContext.Provider value={user}&gt;
+              &lt;Layout /&gt;
+            &lt;/UserContext.Provider&gt;
+          </code>
+        </pre>
+        <aside class="notes">Provider로 감싼 안쪽이라면 아무리 깊어도 값을 꺼낼 수 있다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">19. Context <span class="tag">3. 꺼내기</span></h3>
+        <div class="split">
+          <pre>
+            <code class="language-javascript" data-trim>
+              import { useContext } from 'react';
+
+              function Avatar() {
+                const user = useContext(UserContext);
+                return &lt;img src={user.avatar} /&gt;;
+              }
+            </code>
+          </pre>
+          <div class="demo browser" data-label="브라우저 화면">
+            <p class="note">중간 컴포넌트는 아무것도 안 넘긴다</p>
+          </div>
+        </div>
+        <aside class="notes">Layout과 Header에서 user를 전부 지울 수 있다. 이게 Context를 쓰는 이유.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">19. Context <span class="tag warn">주의</span></h3>
+        <ul class="summary-card warn">
+          <li>전역 상태 도구가 <strong>아니다</strong></li>
+          <li>값이 바뀌면 쓰는 컴포넌트가 전부 다시 그려진다</li>
+          <li>자주 바뀌지 않는 값에 쓴다 &mdash; 로그인 정보, 테마, 언어</li>
+        </ul>
+        <aside class="notes">모든 state를 Context에 넣으려는 학생이 꼭 나온다. props가 2단계면 그냥 props가 낫다.</aside>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>20. useRef</h2><p class="lead">DOM에 직접 닿거나 값을 기억하려면</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">20. useRef <span class="tag">DOM 접근</span></h3>
+        <div class="split">
+          <pre>
+            <code class="language-javascript" data-trim>
+              const inputRef = useRef(null);
+
+              useEffect(() =&gt; {
+                inputRef.current.focus();
+              }, []);
+
+              &lt;input ref={inputRef} /&gt;
+            </code>
+          </pre>
+          <div class="demo browser" data-label="브라우저 화면">
+            <input value="" style="outline:2px solid #61dafb;"><p class="note">화면에 뜨자마자 커서가 들어간다</p>
+          </div>
+        </div>
+        <aside class="notes">React가 대신 해줄 수 없는 일 — 포커스, 스크롤, 미디어 재생 — 에만 쓴다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">20. useRef <span class="tag">값 보관</span></h3>
+        <div class="split">
+          <pre>
+            <code class="language-javascript" data-trim>
+              const timerRef = useRef(null);
+
+              function start() {
+                timerRef.current = setInterval(tick, 1000);
+              }
+              function stop() {
+                clearInterval(timerRef.current);
+              }
+            </code>
+          </pre>
+          <div class="demo browser" data-label="브라우저 화면">
+            <button>시작</button><button>정지</button>
+          </div>
+        </div>
+        <aside class="notes">렌더링과 상관없는 값을 담아둘 때. state로 하면 불필요한 재렌더링이 생긴다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">20. 정리</h3>
+        <div class="compare">
+          <div><span class="tag-lang">useState</span><p>바뀌면 다시 그린다</p><em>화면에 보이는 값</em></div>
+          <div><span class="tag-lang">useRef</span><p>바뀌어도 안 그린다</p><em>화면과 무관한 값</em></div>
+        </div>
+        <aside class="notes">"화면에 보여야 하나?"로 판단하면 대부분 맞다.</aside>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>21. useMemo와 useCallback</h2><p class="lead">같은 계산을 다시 하지 않으려면</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">21. useMemo <span class="tag warn">문제</span></h3>
+        <div class="split">
+          <pre>
+            <code class="language-javascript" data-trim>
+              function App({ items, keyword }) {
+                // 렌더링될 때마다 전부 다시 거른다
+                const result = items.filter(
+                  (i) =&gt; i.name.includes(keyword)
+                );
+              }
+            </code>
+          </pre>
+          <div class="demo console" data-label="콘솔">
+            <div class="ln">items가 10만 개라면</div>
+            <div class="ln">매번 10만 번 검사한다</div>
+          </div>
+        </div>
+        <p class="ask">렌더링될 때마다 10만 번씩 걸러도 될까요?</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">21. useMemo <span class="tag">계산 결과</span></h3>
+        <div class="split">
+          <pre>
+            <code class="language-javascript" data-trim>
+              const result = useMemo(
+                () =&gt; items.filter(
+                  (i) =&gt; i.name.includes(keyword)
+                ),
+                [items, keyword]
+              );
+            </code>
+          </pre>
+          <div class="demo console" data-label="콘솔">
+            <div class="ln">items나 keyword가</div>
+            <div class="ln">바뀔 때만 다시 계산한다</div>
+          </div>
+        </div>
+        <aside class="notes">의존성 배열은 useEffect와 같은 규칙이다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">21. useCallback <span class="tag">함수</span></h3>
+        <pre>
+          <code class="language-javascript" data-trim>
+            const handleClick = useCallback(() =&gt; {
+              setCount((c) =&gt; c + 1);
+            }, []);
+          </code>
+        </pre>
+        <aside class="notes">useMemo가 값을 기억한다면 useCallback은 함수를 기억한다. 자식에게 함수를 props로 내려줄 때 의미가 있다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">21. 정리 <span class="tag warn">남용 금지</span></h3>
+        <ul class="summary-card warn">
+          <li>먼저 만들고, <strong>느릴 때</strong> 넣는다</li>
+          <li>미리 붙이면 코드만 복잡해지고 빨라지지 않는다</li>
+          <li>느린지는 React DevTools Profiler로 확인한다</li>
+        </ul>
+        <aside class="notes">이 슬라이드가 이 장의 핵심이다. 최적화는 측정한 다음에 한다.</aside>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>22. 커스텀 훅</h2><p class="lead">반복되는 로직을 뽑아내려면</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">22. 커스텀 훅 <span class="tag warn">문제</span></h3>
+        <div class="split">
+          <pre>
+            <code class="language-javascript" data-trim>
+              function UserPage() {
+                const [data, setData] = useState(null);
+                const [loading, setLoading] = useState(true);
+                useEffect(() =&gt; { /* fetch */ }, []);
+              }
+
+              function PostPage() {
+                const [data, setData] = useState(null);   // 똑같다
+                const [loading, setLoading] = useState(true);
+                useEffect(() =&gt; { /* fetch */ }, []);
+              }
+            </code>
+          </pre>
+          <div class="demo console" data-label="콘솔">
+            <div class="ln">같은 코드가 화면마다 반복된다</div>
+          </div>
+        </div>
+        <p class="ask">같은 코드가 화면마다 반복되면 어떻게 할까요?</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">22. 커스텀 훅 <span class="tag">뽑아내기</span></h3>
+        <pre>
+          <span class="filename">src/hooks/useFetch.js</span>
+          <code class="language-javascript" data-trim>
+            function useFetch(url) {
+              const [data, setData] = useState(null);
+              const [loading, setLoading] = useState(true);
+
+              useEffect(() =&gt; {
+                fetch(url)
+                  .then((r) =&gt; r.json())
+                  .then((d) =&gt; { setData(d); setLoading(false); });
+              }, [url]);
+
+              return { data, loading };
+            }
+          </code>
+        </pre>
+        <aside class="notes">훅을 쓰는 함수를 만들고 이름을 use로 시작하면 그게 커스텀 훅이다. 특별한 문법이 없다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">22. 커스텀 훅 <span class="tag">쓰기</span></h3>
+        <div class="split">
+          <pre>
+            <code class="language-javascript" data-trim>
+              function UserPage() {
+                const { data, loading } = useFetch("/api/users");
+
+                if (loading) return &lt;p&gt;불러오는 중…&lt;/p&gt;;
+                return &lt;UserList users={data} /&gt;;
+              }
+            </code>
+          </pre>
+          <div class="demo browser" data-label="브라우저 화면">
+            <ul><li>추희도</li><li>윤경</li></ul>
+          </div>
+        </div>
+        <aside class="notes">화면 컴포넌트가 훨씬 짧아졌다. 이게 정리의 목적.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">22. 정리 <span class="tag">훅 규칙</span></h3>
+        <ul class="summary-card">
+          <li>이름은 반드시 <code class="inline">use</code> 로 시작</li>
+          <li>훅은 컴포넌트나 훅의 <strong>맨 위</strong>에서만 부른다</li>
+          <li>조건문 · 반복문 안에서 부르지 않는다</li>
+        </ul>
+        <aside class="notes">훅 규칙은 useState부터 적용되던 것이다. 여기서 한 번 정리해준다.</aside>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>23. 폴더 구조</h2><p class="lead">파일이 늘어나면</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">23. 폴더 구조</h3>
+        <div class="tree">src/
+        ├─ <b>components/</b>   <i>재사용하는 조각</i>
+        ├─ <b>pages/</b>        <i>화면 단위</i>
+        ├─ <b>hooks/</b>        <i>커스텀 훅</i>
+        ├─ <b>contexts/</b>     <i>Context</i>
+        └─ <b>utils/</b>        <i>순수 함수</i></div>
+        <aside class="notes">정답은 없다. 팀에서 정한 대로 따르면 된다. 다만 파일이 30개 넘어가면 뭐라도 나눠야 한다.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">23. 정리</h3>
+        <ul class="summary-card">
+          <li>처음부터 나누지 않는다. <strong>불편해지면</strong> 나눈다</li>
+          <li>한 파일에 컴포넌트 하나</li>
+          <li>파일 이름은 컴포넌트 이름과 같게</li>
+        </ul>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>정리</h2><p class="lead">오늘 배운 것</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">한눈에</h3>
+        <table class="summary">
+          <tr><td>Context</td><td>깊은 곳까지 값 전달. 자주 안 바뀌는 값에</td></tr>
+          <tr><td>useRef</td><td>DOM 접근, 화면과 무관한 값 보관</td></tr>
+          <tr><td>useMemo</td><td>계산 결과 기억</td></tr>
+          <tr><td>useCallback</td><td>함수 기억</td></tr>
+          <tr><td>커스텀 훅</td><td>반복 로직 추출. use로 시작</td></tr>
+          <tr><td>훅 규칙</td><td>맨 위에서만. 조건문 안에서 금지</td></tr>
+        </table>
+      </section>
+
+    </section>
+
+    <section data-transition="convex">
+
+      <section>
+        <h2>실습</h2><p class="lead">할 일 목록 리팩터링</p>
+      </section>
+
+      <section>
+        <h3 class="slide-title">실습 과제</h3>
+        <ol class="toc">
+          <li>3강의 <code class="inline">localStorage</code> 로직을 커스텀 훅으로</li>
+          <li>테마(밝게/어둡게)를 Context로 만들기</li>
+          <li>입력창에 자동으로 커서 넣기 (<code class="inline">useRef</code>)</li>
+        </ol>
+        <p class="hint">새로 만들지 말고 <strong>있는 코드를 옮깁니다</strong></p>
+        <aside class="notes">리팩터링이라 결과 화면은 그대로다. 동작이 안 변하는 게 성공이라고 미리 말해줄 것.</aside>
+      </section>
+
+      <section>
+        <h3 class="slide-title">더 볼 것</h3>
+        <ul class="toc">
+          <li><a href="https://ko.react.dev/learn/passing-data-deeply-with-context" target="_blank" rel="noreferrer">Context로 데이터 깊게 전달하기</a></li>
+          <li><a href="https://ko.react.dev/learn/reusing-logic-with-custom-hooks" target="_blank" rel="noreferrer">커스텀 훅으로 로직 재사용하기</a></li>
+        </ul>
+      </section>
+
+      <section data-transition="zoom">
+        <h1>끝</h1><p class="subtitle">5강에서는 실제로 내보냅니다</p>
+      </section>
+
+    </section>
+
+  </div>
+</div>
+</body>
+
+</html>
